@@ -21,13 +21,15 @@ import billRoutes from "./routes/billRoutes.js";
 app.use("/api/bills", billRoutes);
 
 
-
 import damageReturnRoutes from "./routes/damageReturnRoutes.js";
 app.use("/api/damage-return", damageReturnRoutes);
 
 import daybookRoutes from './routes/daybook.js';
 app.use("/api/daybook", daybookRoutes);
 
+
+import dashboardRoutes from "./routes/dashboardRoute.js";
+app.use("/api/dashboard", dashboardRoutes);
 
 
 const PORT = process.env.PORT || 5000;
