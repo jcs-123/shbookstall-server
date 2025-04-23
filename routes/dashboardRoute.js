@@ -1,36 +1,40 @@
 import express from "express";
-import Bill from "../models/Bill.js";
+import Bill from "../models/Bill.js";  // Import your Bill model
 import Stock from "../models/Stock.js";
 
 const router = express.Router();
 
-router.get("/summary", async (req, res) => {
+router.get("/totalpurchase", async (req, res) => {
   try {
-    const totalStockItems = await Stock.countDocuments();
+    const stocks = await Stock.find();
+    const totalPurchase = stocks.reduce((sum, item) => {
+      return sum + (item.purchaseRate * item.quantity);
+    }, 0);
+    const totalStockItems = stocks.length;
 
-    const bills = await Bill.find();
+    // Fetch total number of bills
+    const totalBills = await Bill.countDocuments();
 
-    const totalBills = bills.length;
-    let totalSales = 0;
-    let totalPurchase = 0;
+    // Calculate total sales (sum of the saleAmount or totalAmount from all bills)
+    const totalSales = await Bill.aggregate([
+      { $group: { _id: null, totalSales: { $sum: "$totalAmount" } } }
+    ]);
 
-    bills.forEach((bill) => {
-      totalSales += bill.totalAmount || 0;
-      totalPurchase += bill.totalPurchaseAmount || 0;
-    });
+    const totalSalesAmount = totalSales.length > 0 ? totalSales[0].totalSales : 0;
 
-    const totalProfit = totalSales - totalPurchase;
+    // Calculate total profit
+    const totalProfit = totalSalesAmount - totalPurchase;
 
-    res.json({
+    res.status(200).json({
+      totalPurchase,
       totalStockItems,
       totalBills,
-      totalSales,
-      totalPurchase,
-      totalProfit,
+      totalSales: totalSalesAmount,
+      totalProfit,  // Add total profit to the response
     });
-  } catch (error) {
-    console.error("Error in summary route:", error);
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    console.error("Error calculating total purchase:", err);
+    res.status(500).json({ message: "Failed to calculate total purchase" });
   }
 });
 
