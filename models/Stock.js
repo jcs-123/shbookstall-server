@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const stockSchema = new mongoose.Schema(
   {
     itemName: { type: String, required: true },
-    code: { type: String, required: true, unique: true },
+    code: { type: String, required: true },
     purchaseRate: { type: Number, required: true },
     retailRate: { type: Number, required: true },
     vendorDetails: { type: String, required: true },
