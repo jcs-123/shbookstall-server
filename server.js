@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import mongoose from "mongoose";
 
+
 dotenv.config();
 const app = express();
 
@@ -30,6 +31,9 @@ app.use("/api/daybook", daybookRoutes);
 
 import dashboardRoutes from "./routes/dashboardRoute.js";
 app.use("/api/dashboard", dashboardRoutes);
+
+import auditLogRoutes from "./routes/auditLogRoutes.js";
+app.use("/api/audit-log", auditLogRoutes);
 
 
 const PORT = process.env.PORT || 5000;

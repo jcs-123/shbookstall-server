@@ -1,6 +1,6 @@
 import express from "express";
 import Stock from "../models/Stock.js";
-import AuditLog from "../models/AuditLog.js"; // Import AuditLog Model
+import AuditLog from "../models/AuditLog.js"; // Make sure to include the `.js` extension
 import { v4 as uuidv4 } from "uuid"; // ✅ FIX: import uuid
 
 const router = express.Router();
@@ -43,23 +43,10 @@ router.post("/", async (req, res) => {
     });
 
     await newStock.save();
-
-    // ✅ Add Audit Log for Stock Added
+    // Save audit log for adding stock
     await AuditLog.create({
-      action: "Stock Added",
-      itemName,
-      stockId: newStock._id,
-      user: editedBy || "Unknown",
-      details: {
-        code,
-        purchaseRate,
-        retailRate,
-        vendorDetails,
-        quantity,
-        minQuantity,
-        totalValue,
-        barcode,
-      },
+      action: `Added stock: ${newStock.itemName}`,
+      user: req.user?.username || "Unknown", // Use real user data here
     });
 
     res.status(201).json({ message: "Stock added successfully", stock: newStock });
@@ -68,6 +55,7 @@ router.post("/", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // ✅ Fetch All Stocks
 router.get("/", async (req, res) => {
@@ -86,15 +74,10 @@ router.put("/:id", async (req, res) => {
       new: true,
     });
 
-    // ✅ Add Audit Log for Stock Updated
+    // Save audit log for editing stock
     await AuditLog.create({
-      action: "Stock Updated",
-      itemName: updatedStock.itemName,
-      stockId: updatedStock._id,
-      user: req.body.editedBy || "Unknown",
-      details: {
-        updatedFields: req.body,
-      },
+      action: `Edited stock: ${updatedStock.itemName}`,
+      user: req.user?.username || "Unknown", // Use real user data here
     });
 
     res.json({ message: "Stock updated successfully", stock: updatedStock });
@@ -106,21 +89,13 @@ router.put("/:id", async (req, res) => {
 // ✅ Delete Stock
 router.delete("/:id", async (req, res) => {
   try {
-    const deletedStock = await Stock.findByIdAndDelete(req.params.id);
+    await Stock.findByIdAndDelete(req.params.id);
 
-    if (deletedStock) {
-      // ✅ Add Audit Log for Stock Deleted
-      await AuditLog.create({
-        action: "Stock Deleted",
-        itemName: deletedStock.itemName,
-        stockId: deletedStock._id,
-        user: "Admin", // You can change this to capture the actual user who deleted
-        details: {
-          code: deletedStock.code,
-          quantity: deletedStock.quantity,
-        },
-      });
-    }
+    // Save audit log for deleting stock
+    await AuditLog.create({
+      action: `Deleted stock: ${deletedStock.itemName}`,
+      user: req.user?.username || "Unknown", // Use real user data here
+    });
 
     res.json({ message: "Stock deleted successfully" });
   } catch (err) {
@@ -173,7 +148,7 @@ router.get("/count-report", async (req, res) => {
   }
 });
 
-// ✅ Low Stock Items
+
 router.get("/low-stock", async (req, res) => {
   try {
     const lowStockItems = await Stock.find({
@@ -185,7 +160,8 @@ router.get("/low-stock", async (req, res) => {
   }
 });
 
-// ✅ Fetch Stock by Code
+
+// GET /api/stock/get-by-code/:code
 router.get("/get-by-code/:code", async (req, res) => {
   try {
     const stock = await Stock.findOne({ code: req.params.code });
@@ -198,14 +174,6 @@ router.get("/get-by-code/:code", async (req, res) => {
   }
 });
 
-// ✅ View Audit Logs
-router.get("/audit-log", async (req, res) => {
-  try {
-    const logs = await AuditLog.find().sort({ timestamp: -1 }).limit(100);
-    res.json(logs);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+
 
 export default router;
