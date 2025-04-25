@@ -1,18 +1,13 @@
-const mongoose = require("mongoose");
+import mongoose from 'mongoose';
 
 const auditLogSchema = new mongoose.Schema({
-  action: {
-    type: String,
-    required: true,
-  },
-  user: {
-    type: String,
-    required: true,
-  },
-  timestamp: {
-    type: Date,
-    default: Date.now,
-  },
+  action: { type: String, required: true },
+  model: { type: String, required: true },
+  data: { type: Object, required: true },
+  timestamp: { type: Date, default: Date.now },
+  user: { type: String, required: true }, // Store the user who performed the action
 });
 
-module.exports = mongoose.model("AuditLog", auditLogSchema);
+const AuditLog = mongoose.model('AuditLog', auditLogSchema);
+
+export default AuditLog;

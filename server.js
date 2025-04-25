@@ -32,8 +32,8 @@ app.use("/api/daybook", daybookRoutes);
 import dashboardRoutes from "./routes/dashboardRoute.js";
 app.use("/api/dashboard", dashboardRoutes);
 
-import auditLogRoutes from "./routes/auditLogRoutes.js";
-app.use("/api/audit-log", auditLogRoutes);
+import auditLogRoutes from './routes/auditLogRoutes.js';
+app.use('/api/audit-logs', auditLogRoutes); 
 
 
 const PORT = process.env.PORT || 5000;

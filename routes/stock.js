@@ -1,11 +1,11 @@
 import express from "express";
 import Stock from "../models/Stock.js";
-import AuditLog from "../models/AuditLog.js"; // Make sure to include the `.js` extension
-import { v4 as uuidv4 } from "uuid"; // ✅ FIX: import uuid
+import { v4 as uuidv4 } from "uuid";
+import auditLogRoutes from "./auditLogRoutes.js"; // Import auditLogRoutes
 
 const router = express.Router();
 
-// ✅ Add Stock with Auto Barcode
+// Add Stock with Auto Barcode
 router.post("/", async (req, res) => {
   try {
     const {
@@ -16,7 +16,7 @@ router.post("/", async (req, res) => {
       vendorDetails,
       quantity,
       minQuantity,
-      editedBy,
+      editedBy, // Assuming user info comes from the frontend
     } = req.body;
 
     if (
@@ -27,7 +27,7 @@ router.post("/", async (req, res) => {
     }
 
     const totalValue = purchaseRate * quantity;
-    const barcode = `BS-${uuidv4().slice(0, 8)}`; // ✅ Auto barcode
+    const barcode = `BS-${uuidv4().slice(0, 8)}`;
 
     const newStock = new Stock({
       itemName,
@@ -43,21 +43,23 @@ router.post("/", async (req, res) => {
     });
 
     await newStock.save();
-    // Save audit log for adding stock
-    await AuditLog.create({
-      action: `Added stock: ${newStock.itemName}`,
-      user: req.user?.username || "Unknown", // Use real user data here
-    });
+
+    // Log the action (Adding stock)
+    await auditLogRoutes.logAction(
+      "created",
+      "stock",
+      { itemName, code, purchaseRate, retailRate, vendorDetails, quantity, minQuantity, totalValue, barcode },
+      editedBy
+    );
 
     res.status(201).json({ message: "Stock added successfully", stock: newStock });
   } catch (err) {
-    console.error("Add Stock Error:", err); // 👀 Debug log
+    console.error("Add Stock Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// ✅ Fetch All Stocks
+// Fetch All Stocks
 router.get("/", async (req, res) => {
   try {
     const stocks = await Stock.find();
@@ -67,18 +69,20 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ✅ Update Stock Entry
+// Update Stock Entry
 router.put("/:id", async (req, res) => {
   try {
     const updatedStock = await Stock.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
 
-    // Save audit log for editing stock
-    await AuditLog.create({
-      action: `Edited stock: ${updatedStock.itemName}`,
-      user: req.user?.username || "Unknown", // Use real user data here
-    });
+    // Log the action (Updating stock)
+    await auditLogRoutes.logAction(
+      "updated",
+      "stock",
+      { ...updatedStock.toObject(), ...req.body }, // Store the updated data
+      req.body.editedBy // Assuming the user who edited is sent in the body
+    );
 
     res.json({ message: "Stock updated successfully", stock: updatedStock });
   } catch (err) {
@@ -86,16 +90,18 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// ✅ Delete Stock
+// Delete Stock
 router.delete("/:id", async (req, res) => {
   try {
-    await Stock.findByIdAndDelete(req.params.id);
+    const deletedStock = await Stock.findByIdAndDelete(req.params.id);
 
-    // Save audit log for deleting stock
-    await AuditLog.create({
-      action: `Deleted stock: ${deletedStock.itemName}`,
-      user: req.user?.username || "Unknown", // Use real user data here
-    });
+    // Log the action (Deleting stock)
+    await auditLogRoutes.logAction(
+      "deleted",
+      "stock",
+      { _id: deletedStock._id, itemName: deletedStock.itemName }, // You can store other details as necessary
+      req.body.editedBy // Assuming the user who deleted is sent in the body
+    );
 
     res.json({ message: "Stock deleted successfully" });
   } catch (err) {
@@ -103,7 +109,7 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// ✅ Count Report — Stock Summary
+// Count Report — Stock Summary
 router.get("/count-report", async (req, res) => {
   try {
     const { from, to } = req.query;
@@ -133,7 +139,7 @@ router.get("/count-report", async (req, res) => {
         itemName: stock.itemName,
         code: stock.code,
         totalCount: quantity,
-        remainingCount: quantity, // Add your own logic if there's a sale count
+        remainingCount: quantity,
         purchaseRate,
         retailRate,
         purchaseAmount,
@@ -148,7 +154,7 @@ router.get("/count-report", async (req, res) => {
   }
 });
 
-
+// Low Stock
 router.get("/low-stock", async (req, res) => {
   try {
     const lowStockItems = await Stock.find({
@@ -160,8 +166,7 @@ router.get("/low-stock", async (req, res) => {
   }
 });
 
-
-// GET /api/stock/get-by-code/:code
+// Get Stock by Code
 router.get("/get-by-code/:code", async (req, res) => {
   try {
     const stock = await Stock.findOne({ code: req.params.code });
@@ -173,7 +178,5 @@ router.get("/get-by-code/:code", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-
 
 export default router;
