@@ -10,20 +10,11 @@ const stockSchema = new mongoose.Schema(
     quantity: { type: Number, required: true },
     minQuantity: { type: Number, required: true },
     totalValue: { type: Number, required: true },
-    editedBy: { type: String, required: true },
-    barcode: { type: String, required: true },
-    purchaseHistory: [
-      {
-        date: { type: Date, default: Date.now },
-        quantityAdded: { type: Number },
-        vendorDetails: { type: String },
-        editedBy: { type: String },
-      },
-    ],
+    editedBy: { type: String },
+    barcode: { type: String, required: true, unique: true },
   },
-  { timestamps: true }
+  { timestamps: true } // ✅ createdAt and updatedAt
 );
 
 const Stock = mongoose.model("Stock", stockSchema);
-
 export default Stock;
