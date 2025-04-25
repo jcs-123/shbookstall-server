@@ -62,14 +62,33 @@ router.get("/", async (req, res) => {
 // ✅ Update Stock Entry
 router.put("/:id", async (req, res) => {
   try {
-    const updatedStock = await Stock.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
+    const { quantity, vendorDetails, editedBy } = req.body;
+
+    const stock = await Stock.findById(req.params.id);
+    if (!stock) {
+      return res.status(404).json({ error: "Stock not found" });
+    }
+
+    // Update quantity and total value
+    stock.quantity += quantity;
+    stock.totalValue = stock.purchaseRate * stock.quantity;
+
+    // ✅ Push to purchase history
+    stock.purchaseHistory.push({
+      date: new Date(),
+      quantityAdded: quantity,
+      vendorDetails,
+      editedBy,
     });
-    res.json({ message: "Stock updated successfully", stock: updatedStock });
+
+    const updatedStock = await stock.save();  // Make sure stock is saved after updating the history
+    res.json({ message: "Stock updated with history", stock: updatedStock });
   } catch (err) {
+    console.error("Update Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // ✅ Delete Stock
 router.delete("/:id", async (req, res) => {
@@ -154,4 +173,4 @@ router.get("/get-by-code/:code", async (req, res) => {
 
 
 
-export default router;
+export default router;  
