@@ -8,14 +8,12 @@ const router = express.Router();
 // @route POST /api/bills
 router.post("/", async (req, res) => {
   try {
-    const { buyerName, items, payment, discount = 0 } = req.body; // Adding discount as a parameter
+    const { buyerName, items, payment, discountAmount = 0 } = req.body; // Discount is a direct amount
 
     // Generate unique receipt number
     const receiptNumber = "REC-" + uuidv4().slice(0, 8).toUpperCase();
 
-    // Calculate total amount
-    let totalAmount = 0;
-
+    // Calculate total amount using reduce method
     const itemDetails = await Promise.all(
       items.map(async (item) => {
         const product = await Stock.findOne({ code: item.code });
@@ -23,7 +21,6 @@ router.post("/", async (req, res) => {
         if (!product) throw new Error(`Item with code ${item.code} not found`);
 
         const amount = product.retailRate * item.qty;
-        totalAmount += amount;
 
         // Update stock count
         product.quantity -= item.qty;
@@ -39,8 +36,10 @@ router.post("/", async (req, res) => {
       })
     );
 
-    // Apply discount
-    const discountAmount = (totalAmount * discount) / 100;
+    // Sum up the total amount using reduce
+    const totalAmount = itemDetails.reduce((sum, item) => sum + item.amount, 0);
+
+    // Apply discount by directly subtracting the discount amount
     const totalAmountAfterDiscount = totalAmount - discountAmount;
 
     // Calculate balance
@@ -52,7 +51,7 @@ router.post("/", async (req, res) => {
       buyerName,
       items: itemDetails,
       totalAmount: totalAmountAfterDiscount, // Use the discounted total
-      discount: discountAmount, // Store the discount
+      discount: discountAmount, // Store the discount amount
       payment,
       balance
     });
