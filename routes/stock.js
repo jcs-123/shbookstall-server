@@ -1,10 +1,9 @@
 import express from "express";
 import Stock from "../models/Stock.js";
-import { v4 as uuidv4 } from "uuid"; // ✅ FIX: import uuid
 
 const router = express.Router();
 
-// ✅ Add Stock with Auto Barcode
+// ✅ Add Stock — using simple `code` as barcode
 router.post("/", async (req, res) => {
   try {
     const {
@@ -26,11 +25,10 @@ router.post("/", async (req, res) => {
     }
 
     const totalValue = purchaseRate * quantity;
-    const barcode = `BS-${uuidv4().slice(0, 8)}`; // ✅ Auto barcode
 
     const newStock = new Stock({
       itemName,
-      code,
+      code,                   // ✅ simple code like "K55"
       purchaseRate,
       retailRate,
       vendorDetails,
@@ -38,18 +36,18 @@ router.post("/", async (req, res) => {
       minQuantity,
       totalValue,
       editedBy,
-      barcode,
+      barcode: code,          // ✅ use code as barcode
     });
 
     await newStock.save();
     res.status(201).json({ message: "Stock added successfully", stock: newStock });
   } catch (err) {
-    console.error("Add Stock Error:", err); // 👀 Debug log
+    console.error("Add Stock Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ Fetch All Stocks
+// ✅ Get All Stocks
 router.get("/", async (req, res) => {
   try {
     const stocks = await Stock.find();
@@ -59,7 +57,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ✅ Update Stock Entry
+// ✅ Update Stock
 router.put("/:id", async (req, res) => {
   try {
     const updatedStock = await Stock.findByIdAndUpdate(req.params.id, req.body, {
@@ -81,7 +79,7 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// ✅ Count Report — Stock Summary
+// ✅ Count Report
 router.get("/count-report", async (req, res) => {
   try {
     const { from, to } = req.query;
@@ -111,7 +109,7 @@ router.get("/count-report", async (req, res) => {
         itemName: stock.itemName,
         code: stock.code,
         totalCount: quantity,
-        remainingCount: quantity, // Add your own logic if there's a sale count
+        remainingCount: quantity,
         purchaseRate,
         retailRate,
         purchaseAmount,
@@ -126,7 +124,7 @@ router.get("/count-report", async (req, res) => {
   }
 });
 
-
+// ✅ Low Stock Report
 router.get("/low-stock", async (req, res) => {
   try {
     const lowStockItems = await Stock.find({
@@ -138,8 +136,7 @@ router.get("/low-stock", async (req, res) => {
   }
 });
 
-
-// GET /api/stock/get-by-code/:code
+// ✅ Fetch by Code (for Billing Scan or Manual Code Entry)
 router.get("/get-by-code/:code", async (req, res) => {
   try {
     const stock = await Stock.findOne({ code: req.params.code });
@@ -151,7 +148,5 @@ router.get("/get-by-code/:code", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-
 
 export default router;
