@@ -8,12 +8,13 @@ const router = express.Router();
 // @route POST /api/bills
 router.post("/", async (req, res) => {
   try {
-    const { buyerName, items, payment, discountAmount = 0 } = req.body; // Discount is a direct amount
+    const { buyerName, items, payment, discount } = req.body;
 
-    // Generate unique receipt number
+    // Generate a unique receipt number
     const receiptNumber = "REC-" + uuidv4().slice(0, 8).toUpperCase();
 
-    // Calculate total amount using reduce method
+    // Calculate total amount and item details
+    let totalAmount = 0;
     const itemDetails = await Promise.all(
       items.map(async (item) => {
         const product = await Stock.findOne({ code: item.code });
@@ -21,6 +22,7 @@ router.post("/", async (req, res) => {
         if (!product) throw new Error(`Item with code ${item.code} not found`);
 
         const amount = product.retailRate * item.qty;
+        totalAmount += amount;
 
         // Update stock count
         product.quantity -= item.qty;
@@ -36,39 +38,37 @@ router.post("/", async (req, res) => {
       })
     );
 
-    // Sum up the total amount using reduce
-    const totalAmount = itemDetails.reduce((sum, item) => sum + item.amount, 0);
+    // Calculate the discount and grand total
+    const grandTotal = totalAmount - discount;
 
-    // Apply discount by directly subtracting the discount amount
-    const totalAmountAfterDiscount = totalAmount - discountAmount;
+    // Calculate the balance after payment
+    const balance = payment - grandTotal;
 
-    // Calculate balance
-    const balance = payment - totalAmountAfterDiscount;
-
-    // Create new bill
+    // Create a new bill document with all necessary fields
     const newBill = new Bill({
       receiptNumber,
       buyerName,
       items: itemDetails,
-      totalAmount: totalAmountAfterDiscount, // Use the discounted total
-      discount: discountAmount, // Store the discount amount
+      totalAmount,
+      grandTotal,
+      discount,  // Store the discount amount applied
       payment,
       balance
     });
 
-    // Save the new bill
+    // Save the bill to the database
     await newBill.save();
 
-    // Send response with bill details including discount
+    // Respond with the saved bill and other details
     res.status(201).json({
       message: "Bill saved successfully",
       receiptNumber,
-      totalAmount: totalAmountAfterDiscount,
-      discount: discountAmount,
+      totalAmount,
+      grandTotal,
+      discount,
       balance,
       data: newBill
     });
-
   } catch (error) {
     console.error("Billing error:", error.message);
     res.status(500).json({ message: "Failed to submit bill", error: error.message });
@@ -102,6 +102,7 @@ router.get("/", async (req, res) => {
   }
 });
 
+
 // DELETE /api/bills/:id
 router.delete('/:id', async (req, res) => {
   try {
@@ -117,6 +118,7 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 export default router;
 
