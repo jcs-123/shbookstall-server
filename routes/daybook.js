@@ -16,29 +16,15 @@ router.get("/", async (req, res) => {
       date: { $gte: fromDate, $lte: toDate },
     }).lean();
 
-    const stockList = await Stock.find().lean();
-    const stockMap = {};
-    stockList.forEach((stock) => {
-      stockMap[stock.code] = stock.retailRate;
-    });
-
-    const receipts = billEntries.map((bill) => {
-      let totalAmount = 0;
-      if (Array.isArray(bill.items)) {
-        totalAmount = bill.items.reduce((sum, item) => {
-          const rate = stockMap[item.code] || 0;
-          return sum + item.qty * rate;
-        }, 0);
-      }
-
-      return {
-        date: bill.date,
-        type: "Receipt",
-        particulars: `Bill to ${bill.buyerName}`,
-        receipt: totalAmount, // use calculated total instead of payment
-        payment: 0,
-      };
-    });
+    const receipts = billEntries.map((bill) => ({
+      date: bill.date,
+      type: "Receipt",
+      particulars: `Bill to ${bill.buyerName} ${
+        bill.discount > 0 ? `(Discount: ₹${bill.discount})` : ""
+      }`,
+      receipt: bill.grandTotal,  // use final discounted amount
+      payment: 0,
+    }));
 
     const stockEntries = await Stock.find({
       createdAt: { $gte: fromDate, $lte: toDate },
