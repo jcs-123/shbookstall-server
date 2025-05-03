@@ -85,7 +85,7 @@ router.put("/:id", async (req, res) => {
       itemName: oldStock.itemName,
       updatedItemName: updatedStock.itemName,
       updatedQuantity: updatedStock.quantity,
-      enteredQuantity: req.body.quantity,
+      enteredQuantity: req.body.enteredQuantity,
       code: updatedStock.code,
       editedBy: req.body.editedBy,
       details: {
@@ -93,6 +93,7 @@ router.put("/:id", async (req, res) => {
         newData: updatedStock,
       },
     });
+    
 
     res.json({ message: "Stock updated successfully", stock: updatedStock });
   } catch (err) {
