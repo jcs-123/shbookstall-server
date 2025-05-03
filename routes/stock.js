@@ -1,6 +1,5 @@
 import express from "express";
 import Stock from "../models/Stock.js";
-import StockHistory from "../models/StockHistory.js";
 import AuditLog from "../models/AuditLog.js"; // ✅ include audit log model
 
 const router = express.Router();
@@ -69,6 +68,7 @@ router.get("/", async (req, res) => {
   }
 });
 
+// ✅ Update Stock with Audit Log
 router.put("/:id", async (req, res) => {
   try {
     const oldStock = await Stock.findById(req.params.id);
@@ -80,7 +80,6 @@ router.put("/:id", async (req, res) => {
       new: true,
     });
 
-    // Audit Log (already present)
     await AuditLog.create({
       action: "Updated",
       itemName: oldStock.itemName,
@@ -94,19 +93,7 @@ router.put("/:id", async (req, res) => {
         newData: updatedStock,
       },
     });
-
-    // 🔥 New: Log to StockHistory if quantity increased
-    const quantityAdded = req.body.enteredQuantity;
-    if (quantityAdded > 0) {
-      await StockHistory.create({
-        stockId: updatedStock._id,
-        itemName: updatedStock.itemName,
-        code: updatedStock.code,
-        quantityAdded,
-        purchaseRate: updatedStock.purchaseRate, // or req.body.purchaseRate if editable
-        editedBy: req.body.editedBy,
-      });
-    }
+    
 
     res.json({ message: "Stock updated successfully", stock: updatedStock });
   } catch (err) {

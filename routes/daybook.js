@@ -1,7 +1,6 @@
 import express from "express";
 import Bill from "../models/Bill.js";
 import Stock from "../models/Stock.js";
-import StockHistory from "../models/StockHistory.js";
 
 const router = express.Router();
 
@@ -27,16 +26,16 @@ router.get("/", async (req, res) => {
       payment: 0,
     }));
 
-    const stockHistories = await StockHistory.find({
-      date: { $gte: fromDate, $lte: toDate },
+    const stockEntries = await Stock.find({
+      createdAt: { $gte: fromDate, $lte: toDate },
     }).lean();
-    
-    const payments = stockHistories.map((entry) => ({
-      date: entry.date,
+
+    const payments = stockEntries.map((stock) => ({
+      date: stock.createdAt,
       type: "Payment",
-      particulars: `Purchased ${entry.itemName}`,
+      particulars: `Purchased ${stock.itemName}`,
       receipt: 0,
-      payment: entry.purchaseRate * entry.quantityAdded,
+      payment: stock.purchaseRate * stock.quantity,
     }));
 
     const allEntries = [...receipts, ...payments].sort(
