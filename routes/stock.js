@@ -73,7 +73,12 @@ router.get("/", async (req, res) => {
 // ✅ Update Stock and Add Audit Log
 router.put("/:id", async (req, res) => {
   try {
-    const { quantity: enteredQuantity, editedBy, ...otherUpdates } = req.body;
+    const {
+      quantity: updatedQuantityFromClient,
+      editedBy,
+      auditInfo, // contains oldQuantity, addedQuantity, updatedQuantity
+      ...otherUpdates
+    } = req.body;
 
     const stock = await Stock.findById(req.params.id);
     if (!stock) {
@@ -81,10 +86,16 @@ router.put("/:id", async (req, res) => {
     }
 
     const oldQuantity = stock.quantity || 0;
-    const newQuantity = oldQuantity + enteredQuantity;
-    const updatedTotalValue = stock.purchaseRate * newQuantity;
+    const addedQuantity = auditInfo?.addedQuantity || 0;
+    const newQuantity = oldQuantity + addedQuantity;
 
-    // Update the stock
+    const updatedTotalValue =
+      parseFloat(stock.purchaseRate) * parseFloat(newQuantity);
+
+    // Save a copy of old data
+    const oldData = { ...stock.toObject() };
+
+    // Update the stock item
     stock.set({
       ...otherUpdates,
       quantity: newQuantity,
@@ -94,24 +105,29 @@ router.put("/:id", async (req, res) => {
 
     const updatedStock = await stock.save();
 
-    // Save to audit log
+    // Save to Audit Log
     await AuditLog.create({
-      action: "Updated",
+      action: "Stock Updated",
       itemName: stock.itemName,
       code: stock.code,
       editedBy,
-      enteredQuantity,       // ➕ new quantity added
-      oldQuantity,           // 🔁 old quantity before update
-      updatedQuantity: newQuantity,  // ✅ total after update
+      oldQuantity: oldQuantity,
+      addedQuantity: addedQuantity,
+      updatedQuantity: newQuantity,
+      editedAt: new Date(),
       details: {
-        oldData: stock,
+        oldData,
         newData: updatedStock,
       },
     });
 
-    res.json({ message: "Stock updated successfully", stock: updatedStock });
+    res.json({
+      message: "Stock updated successfully",
+      stock: updatedStock,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Update failed:", err);
+    res.status(500).json({ error: "Server error during stock update" });
   }
 });
 
