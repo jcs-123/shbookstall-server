@@ -1,5 +1,5 @@
 import express from "express";
-import Bill from "../models/Bill.js";  // Import your Bill model
+import Bill from "../models/Bill.js";
 import Stock from "../models/Stock.js";
 
 const router = express.Router();
@@ -15,9 +15,9 @@ router.get("/totalpurchase", async (req, res) => {
     // Fetch total number of bills
     const totalBills = await Bill.countDocuments();
 
-    // Calculate total sales (sum of the saleAmount or totalAmount from all bills)
+    // Calculate total sales (sum of the grandTotal from all bills)
     const totalSales = await Bill.aggregate([
-      { $group: { _id: null, totalSales: { $sum: "$totalAmount" } } }
+      { $group: { _id: null, totalSales: { $sum: "$grandTotal" } } }
     ]);
 
     const totalSalesAmount = totalSales.length > 0 ? totalSales[0].totalSales : 0;
