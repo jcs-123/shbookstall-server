@@ -1,9 +1,12 @@
 import express from "express";
 import Stock from "../models/Stock.js";
+import AuditLog from "../models/AuditLog.js";
+import { v4 as uuidv4 } from "uuid";
 
 const router = express.Router();
 
-// ✅ Add Stock — using simple `code` as barcode
+// ✅ Add Stock with Auto Barcode
+// ✅ Add Stock with Auto Barcode
 router.post("/", async (req, res) => {
   try {
     const {
@@ -17,18 +20,16 @@ router.post("/", async (req, res) => {
       editedBy,
     } = req.body;
 
-    if (
-      !itemName || !code || !purchaseRate || !retailRate ||
-      !vendorDetails || !quantity || !minQuantity
-    ) {
+    if (!itemName || !code || !purchaseRate || !retailRate || !vendorDetails || !quantity || !minQuantity) {
       return res.status(400).json({ error: "All fields are required!" });
     }
 
     const totalValue = purchaseRate * quantity;
+    const barcode = `BS-${uuidv4().slice(0, 8)}`;
 
     const newStock = new Stock({
       itemName,
-      code,                   // ✅ simple code like "K55"
+      code,
       purchaseRate,
       retailRate,
       vendorDetails,
@@ -36,7 +37,7 @@ router.post("/", async (req, res) => {
       minQuantity,
       totalValue,
       editedBy,
-      barcode: code,          // ✅ use code as barcode
+      barcode,
     });
 
     await newStock.save();
@@ -50,7 +51,6 @@ router.post("/", async (req, res) => {
       enteredQuantity: quantity,
     });
 
-
     res.status(201).json({ message: "Stock added successfully", stock: newStock });
   } catch (err) {
     console.error("Add Stock Error:", err);
@@ -58,7 +58,8 @@ router.post("/", async (req, res) => {
   }
 });
 
-// ✅ Get All Stocks
+
+// ✅ Fetch All Stocks
 router.get("/", async (req, res) => {
   try {
     const stocks = await Stock.find();
@@ -68,7 +69,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ✅ Update Stock
+// ✅ Update Stock Entry with Audit Logging
+// ✅ Update Stock Entry with Audit Logging
 router.put("/:id", async (req, res) => {
   try {
     const oldStock = await Stock.findById(req.params.id);
@@ -103,25 +105,12 @@ router.put("/:id", async (req, res) => {
 });
 
 
-// router.put("/:id", async (req, res) => {
-//   try {
-//     const updatedStock = await Stock.findByIdAndUpdate(req.params.id, req.body, {
-//       new: true,
-//     });
-
-    
-//     res.json({ message: "Stock updated successfully", stock: updatedStock });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
-
 // ✅ Delete Stock
 router.delete("/:id", async (req, res) => {
   try {
-    await Stock.findByIdAndDelete(req.params.id);
+    const deletedStock = await Stock.findByIdAndDelete(req.params.id);
 
-
+    // ✅ Save to Audit Log
     if (deletedStock) {
       await AuditLog.create({
         action: "Deleted",
@@ -131,19 +120,18 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
-
     res.json({ message: "Stock deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ Count Report
+// ✅ Count Report — Stock Summary
 router.get("/count-report", async (req, res) => {
   try {
     const { from, to } = req.query;
-
     const query = {};
+
     if (from && to) {
       query.createdAt = {
         $gte: new Date(from),
@@ -155,11 +143,8 @@ router.get("/count-report", async (req, res) => {
 
     const report = stocks.map((stock) => {
       const quantity = stock.quantity || 0;
-      const purchaseRate = stock.purchaseRate || 0;
-      const retailRate = stock.retailRate || 0;
-
-      const purchaseAmount = quantity * purchaseRate;
-      const retailAmount = quantity * retailRate;
+      const purchaseAmount = quantity * (stock.purchaseRate || 0);
+      const retailAmount = quantity * (stock.retailRate || 0);
       const profit = retailAmount - purchaseAmount;
 
       return {
@@ -169,8 +154,8 @@ router.get("/count-report", async (req, res) => {
         code: stock.code,
         totalCount: quantity,
         remainingCount: quantity,
-        purchaseRate,
-        retailRate,
+        purchaseRate: stock.purchaseRate,
+        retailRate: stock.retailRate,
         purchaseAmount,
         retailAmount,
         profit,
@@ -195,7 +180,7 @@ router.get("/low-stock", async (req, res) => {
   }
 });
 
-// ✅ Fetch by Code (for Billing Scan or Manual Code Entry)
+// ✅ Get Stock by Code
 router.get("/get-by-code/:code", async (req, res) => {
   try {
     const stock = await Stock.findOne({ code: req.params.code });
@@ -208,7 +193,6 @@ router.get("/get-by-code/:code", async (req, res) => {
   }
 });
 
-
 // ✅ GET Audit Logs
 router.get("/logs", async (req, res) => {
   try {
@@ -219,6 +203,5 @@ router.get("/logs", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch audit logs" });
   }
 });
-
 
 export default router;
