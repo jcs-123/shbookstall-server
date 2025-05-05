@@ -80,19 +80,23 @@ router.put("/:id", async (req, res) => {
       new: true,
     });
 
+    const enteredQuantity = req.body.quantity - oldStock.quantity;
+    const updatedQuantity = req.body.quantity;
+
     await AuditLog.create({
       action: "Updated",
       itemName: oldStock.itemName,
       code: oldStock.code,
-      oldQuantity: oldStock.quantity,         // ✅ existing quantity
+      oldQuantity: oldStock.quantity,
       enteredQuantity: enteredQuantity,
       updatedQuantity: updatedQuantity,
       editedBy: req.body.editedBy,
       timestamp: new Date(),
     });
-    
+
     res.json({ message: "Stock updated successfully", stock: updatedStock });
   } catch (err) {
+    console.error("Update Stock Error:", err);  // ✅ Debug log
     res.status(500).json({ error: err.message });
   }
 });
