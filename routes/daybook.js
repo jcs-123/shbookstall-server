@@ -51,7 +51,7 @@ router.get("/", async (req, res) => {
     const auditPayments = auditUpdates.map((log) => ({
       date: log.timestamp,
       type: "Payment",
-      particulars: `Purchased ${log.itemName} `,
+      particulars: `Purchased ${log.itemName} (Update)`,
       receipt: 0,
       payment: log.enteredQuantity * log.purchaseRate, // Need to store purchaseRate in log
     }));
