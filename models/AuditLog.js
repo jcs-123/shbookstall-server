@@ -1,19 +1,19 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const auditLogSchema = new mongoose.Schema({
-    action: String,
-    itemName: String,
-    updatedItemName: String,
-    code: String,
-    editedBy: String,
-    updatedQuantity: Number,
-    enteredQuantity: Number, // ✅ Add this if not already there
-    timestamp: {
-      type: Date,
-      default: Date.now,
-    },
-    details: Object,
-  });
-  
-const AuditLog = mongoose.model('AuditLog', auditLogSchema);
+  action: String,
+  itemName: String,
+  code: String,
+  oldQuantity: Number,
+  enteredQuantity: Number,
+  updatedQuantity: Number,
+  editedBy: String,
+  timestamp: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+const AuditLog = mongoose.model("AuditLog", auditLogSchema);
+
 export default AuditLog;
