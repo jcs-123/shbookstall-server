@@ -1,8 +1,7 @@
 import express from "express";
 import Bill from "../models/Bill.js";
 import Stock from "../models/Stock.js";
-import AuditLog from "../models/AuditLog.js";
-
+import AuditLog from "../models/AuditLog.js"; // 👈 Import this
 
 const router = express.Router();
 
@@ -22,10 +21,10 @@ router.get("/", async (req, res) => {
     const receipts = billEntries.map((bill) => ({
       date: bill.date,
       type: "Receipt",
-      particulars: `Bill to ${bill.buyerName}${
-        bill.discount > 0 ? ` (Discount: ₹${bill.discount})` : ""
+      particulars: `Bill to ${bill.buyerName} ${
+        bill.discount > 0 ? `(Discount: ₹${bill.discount})` : ""
       }`,
-      receipt: bill.grandTotal || 0,
+      receipt: bill.grandTotal,
       payment: 0,
     }));
 
@@ -39,25 +38,24 @@ router.get("/", async (req, res) => {
       type: "Payment",
       particulars: `Purchased ${stock.itemName}`,
       receipt: 0,
-      payment: (stock.purchaseRate || 0) * (stock.quantity || 0),
+      payment: stock.purchaseRate * stock.quantity,
     }));
 
-    // ✅ 3. Stock Updates via Audit Logs
+    // ✅ 3. Later Quantity Updates (from AuditLog)
     const auditUpdates = await AuditLog.find({
       action: "Updated",
       enteredQuantity: { $gt: 0 },
-      updatedAt: { $gte: fromDate, $lte: toDate }, // ✅ Use updatedAt if timestamp not available
+      timestamp: { $gte: fromDate, $lte: toDate },
     }).lean();
 
     const auditPayments = auditUpdates.map((log) => ({
-      date: log.updatedAt,
+      date: log.timestamp,
       type: "Payment",
       particulars: `Purchased ${log.itemName} (Update)`,
       receipt: 0,
-      payment: (log.enteredQuantity || 0) * (log.purchaseRate || 0),
+      payment: log.enteredQuantity * log.purchaseRate, // Need to store purchaseRate in log
     }));
 
-    // ✅ Combine all entries and sort by date
     const allEntries = [...receipts, ...stockPayments, ...auditPayments].sort(
       (a, b) => new Date(a.date) - new Date(b.date)
     );
