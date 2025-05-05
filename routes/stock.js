@@ -83,16 +83,14 @@ router.put("/:id", async (req, res) => {
     await AuditLog.create({
       action: "Updated",
       itemName: oldStock.itemName,
-      updatedItemName: updatedStock.itemName,
-      updatedQuantity: updatedStock.quantity,
-      enteredQuantity: req.body.enteredQuantity,
-      oldQuantity: oldStock.quantity, // ✅ Add this line
-      code: updatedStock.code,
+      code: oldStock.code,
+      oldQuantity: oldStock.quantity,         // ✅ existing quantity
+      enteredQuantity: enteredQuantity,
+      updatedQuantity: updatedQuantity,
       editedBy: req.body.editedBy,
+      timestamp: new Date(),
     });
     
-    
-
     res.json({ message: "Stock updated successfully", stock: updatedStock });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -189,5 +187,16 @@ router.get("/logs", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch audit logs" });
   }
 });
+
+// ✅ Delete Audit Log by ID
+router.delete("/logs/:id", async (req, res) => {
+  try {
+    await AuditLog.findByIdAndDelete(req.params.id);
+    res.json({ message: "Audit log deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete audit log" });
+  }
+});
+
 
 export default router;
