@@ -22,10 +22,10 @@ router.get("/", async (req, res) => {
     const receipts = billEntries.map((bill) => ({
       date: bill.date,
       type: "Receipt",
-      particulars: `Bill to ${bill.buyerName} ${
-        bill.discount > 0 ? `(Discount: ₹${bill.discount})` : ""
+      particulars: `Bill to ${bill.buyerName}${
+        bill.discount > 0 ? ` (Discount: ₹${bill.discount})` : ""
       }`,
-      receipt: bill.grandTotal,
+      receipt: bill.grandTotal || 0,
       payment: 0,
     }));
 
@@ -39,29 +39,25 @@ router.get("/", async (req, res) => {
       type: "Payment",
       particulars: `Purchased ${stock.itemName}`,
       receipt: 0,
-      payment: stock.purchaseRate * stock.quantity,
+      payment: (stock.purchaseRate || 0) * (stock.quantity || 0),
     }));
 
-    // ✅ 3. Later Updates: only if rate is changed (to avoid duplicate payment entry)
+    // ✅ 3. Stock Updates via Audit Logs
     const auditUpdates = await AuditLog.find({
       action: "Updated",
       enteredQuantity: { $gt: 0 },
-      updatedAt: { $gte: fromDate, $lte: toDate },
+      updatedAt: { $gte: fromDate, $lte: toDate }, // ✅ Use updatedAt if timestamp not available
     }).lean();
 
-    const auditPayments = auditUpdates
-      .filter(
-        (log) =>
-          log.purchaseRate !== log.previousPurchaseRate && log.purchaseRate > 0
-      )
-      .map((log) => ({
-        date: log.updatedAt,
-        type: "Payment",
-        particulars: `Purchased ${log.itemName} (Update)`,
-        receipt: 0,
-        payment: log.enteredQuantity * log.purchaseRate,
-      }));
+    const auditPayments = auditUpdates.map((log) => ({
+      date: log.updatedAt,
+      type: "Payment",
+      particulars: `Purchased ${log.itemName} (Update)`,
+      receipt: 0,
+      payment: (log.enteredQuantity || 0) * (log.purchaseRate || 0),
+    }));
 
+    // ✅ Combine all entries and sort by date
     const allEntries = [...receipts, ...stockPayments, ...auditPayments].sort(
       (a, b) => new Date(a.date) - new Date(b.date)
     );
@@ -72,6 +68,7 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 export default router;
 
 
