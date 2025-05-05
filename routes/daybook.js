@@ -41,28 +41,21 @@ router.get("/", async (req, res) => {
       payment: stock.purchaseRate * stock.quantity,
     }));
 
-    // ✅ 3. Valid Purchase Updates (from AuditLog)
+    // ✅ 3. Later Quantity Updates (from AuditLog)
     const auditUpdates = await AuditLog.find({
       action: "Updated",
       enteredQuantity: { $gt: 0 },
-      updatedAt: { $gte: fromDate, $lte: toDate },
+      timestamp: { $gte: fromDate, $lte: toDate },
     }).lean();
 
-    const auditPayments = auditUpdates
-      .filter(
-        (log) =>
-          log.purchaseRate !== log.previousPurchaseRate ||
-          log.previousQuantity === 0
-      )
-      .map((log) => ({
-        date: log.updatedAt,
-        type: "Payment",
-        particulars: `Purchased ${log.itemName} (Update)`,
-        receipt: 0,
-        payment: log.enteredQuantity * log.purchaseRate,
-      }));
+    const auditPayments = auditUpdates.map((log) => ({
+      date: log.timestamp,
+      type: "Payment",
+      particulars: `Purchased ${log.itemName} (Update)`,
+      receipt: 0,
+      payment: log.enteredQuantity * log.purchaseRate, // Need to store purchaseRate in log
+    }));
 
-    // ✅ Combine & Sort All
     const allEntries = [...receipts, ...stockPayments, ...auditPayments].sort(
       (a, b) => new Date(a.date) - new Date(b.date)
     );
@@ -73,6 +66,7 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 export default router;
 
 
