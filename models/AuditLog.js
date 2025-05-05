@@ -7,6 +7,7 @@ const auditLogSchema = new mongoose.Schema({
   oldQuantity: Number,
   enteredQuantity: Number,
   updatedQuantity: Number,
+  purchaseRate: Number,
   editedBy: String,
   timestamp: {
     type: Date,
