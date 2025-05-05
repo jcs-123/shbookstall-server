@@ -29,7 +29,7 @@ router.get("/", async (req, res) => {
       payment: 0,
     }));
 
-    // ✅ 2. Initial Stock Purchases
+    // ✅ 2. Initial Stock Purchases (included in total)
     const stockEntries = await Stock.find({
       createdAt: { $gte: fromDate, $lte: toDate },
     }).lean();
@@ -42,7 +42,7 @@ router.get("/", async (req, res) => {
       payment: stock.purchaseRate * stock.quantity,
     }));
 
-    // ✅ 3. Quantity Updates (shown separately)
+    // ✅ 3. Quantity Updates (not included in total)
     const auditUpdates = await AuditLog.find({
       action: "Updated",
       enteredQuantity: { $gt: 0 },
@@ -55,14 +55,24 @@ router.get("/", async (req, res) => {
       particulars: `Purchased ${log.itemName} (Update)`,
       receipt: 0,
       payment: log.enteredQuantity * log.purchaseRate,
+      isUpdate: true, // 👈 use this flag to skip in total
     }));
 
-    // ✅ Merge All Entries
     const allEntries = [...receipts, ...stockPayments, ...auditPayments].sort(
       (a, b) => new Date(a.date) - new Date(b.date)
     );
 
-    res.json(allEntries);
+    // ✅ Totals (Only Stock & Bills)
+    const totalReceipt = receipts.reduce((sum, r) => sum + r.receipt, 0);
+    const totalPayment = stockPayments.reduce((sum, p) => sum + p.payment, 0); // ❌ audit not included
+
+    res.json({
+      entries: allEntries,
+      totals: {
+        receipt: totalReceipt,
+        payment: totalPayment,
+      },
+    });
   } catch (err) {
     console.error("Daybook Fetch Error:", err.message);
     res.status(500).json({ error: err.message });
