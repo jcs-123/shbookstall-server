@@ -203,16 +203,6 @@ router.delete("/logs/:id", async (req, res) => {
 });
 
 
-// DELETE all logs
-router.delete("/logs", async (req, res) => {
-  try {
-      await AuditLog.deleteMany({});
-      res.status(200).json({ message: "All logs cleared successfully" });
-  } catch (error) {
-      console.error("Error clearing logs:", error);
-      res.status(500).json({ error: "Failed to clear logs" });
-  }
-});
 
 
 
