@@ -101,20 +101,11 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// ✅ Delete Stock with Audit Log
+
+// ✅ Delete Stock
 router.delete("/:id", async (req, res) => {
   try {
-    const deletedStock = await Stock.findByIdAndDelete(req.params.id);
-
-    if (deletedStock) {
-      await AuditLog.create({
-        action: "Deleted",
-        itemName: deletedStock.itemName,
-        code: deletedStock.code,
-        editedBy: req.body.editedBy || "Unknown",
-      });
-    }
-
+    await Stock.findByIdAndDelete(req.params.id);
     res.json({ message: "Stock deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
