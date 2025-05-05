@@ -6,14 +6,15 @@ const auditLogSchema = new mongoose.Schema({
     updatedItemName: String,
     code: String,
     editedBy: String,
+    oldQuantity: Number,
     updatedQuantity: Number,
     enteredQuantity: Number, // ✅ Add this if not already there
     timestamp: {
-      type: Date,
-      default: Date.now,
+        type: Date,
+        default: Date.now,
     },
     details: Object,
-  });
-  
+});
+
 const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 export default AuditLog;

@@ -86,13 +86,11 @@ router.put("/:id", async (req, res) => {
       updatedItemName: updatedStock.itemName,
       updatedQuantity: updatedStock.quantity,
       enteredQuantity: req.body.enteredQuantity,
+      oldQuantity: oldStock.quantity, // ✅ Add this line
       code: updatedStock.code,
       editedBy: req.body.editedBy,
-      details: {
-        oldData: oldStock,
-        newData: updatedStock,
-      },
     });
+    
     
 
     res.json({ message: "Stock updated successfully", stock: updatedStock });
