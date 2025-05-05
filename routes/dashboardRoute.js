@@ -5,7 +5,8 @@ import AuditLog from "../models/AuditLog.js"; // ✅ MISSING IMPORT
 
 const router = express.Router();
 
-// Backend: /api/dashboard/totalpurchase
+
+// GET: /api/dashboard/totalpurchase
 router.get("/totalpurchase", async (req, res) => {
   try {
     const stocks = await Stock.find();
