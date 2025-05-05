@@ -42,7 +42,7 @@ router.get("/", async (req, res) => {
       payment: stock.purchaseRate * stock.quantity,
     }));
 
-    // ✅ 3. Later Quantity Updates (from AuditLog)
+    // ✅ 3. Quantity Updates (shown separately)
     const auditUpdates = await AuditLog.find({
       action: "Updated",
       enteredQuantity: { $gt: 0 },
@@ -54,9 +54,10 @@ router.get("/", async (req, res) => {
       type: "Payment",
       particulars: `Purchased ${log.itemName} (Update)`,
       receipt: 0,
-      payment: log.enteredQuantity * log.purchaseRate, // Need to store purchaseRate in log
+      payment: log.enteredQuantity * log.purchaseRate,
     }));
 
+    // ✅ Merge All Entries
     const allEntries = [...receipts, ...stockPayments, ...auditPayments].sort(
       (a, b) => new Date(a.date) - new Date(b.date)
     );
