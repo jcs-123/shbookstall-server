@@ -1,4 +1,3 @@
-// routes/summaryRoute.js
 import express from "express";
 const router = express.Router();
 import Stock from "../models/Stock.js";
@@ -7,6 +6,7 @@ import Bill from "../models/Bill.js";
 // ✅ Monthly Summary Route
 router.get("/monthly-summary", async (req, res) => {
   try {
+    // 📦 Stock Summary by Month (uses createdAt)
     const stockSummary = await Stock.aggregate([
       {
         $addFields: {
@@ -23,21 +23,23 @@ router.get("/monthly-summary", async (req, res) => {
       },
     ]);
 
+    // 💵 Bill Summary by Month (use bill `date` field instead of createdAt)
     const billSummary = await Bill.aggregate([
       {
         $addFields: {
-          yearMonth: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+          yearMonth: { $dateToString: { format: "%Y-%m", date: "$date" } }, // 🟢 Corrected here
         },
       },
       {
         $group: {
           _id: "$yearMonth",
           totalBills: { $sum: 1 },
-          totalSales: { $sum: "$totalAmount" }, // Use "grandTotal" if your model uses that
+          totalSales: { $sum: "$grandTotal" }, // Or change if you use totalAmount
         },
       },
     ]);
 
+    // 📊 Merge both summaries into a single monthlyMap
     const monthlyMap = {};
 
     stockSummary.forEach((entry) => {
@@ -70,6 +72,7 @@ router.get("/monthly-summary", async (req, res) => {
       totalProfit: entry.totalSales - entry.totalPurchase,
     }));
 
+    // Sort by month ascending
     summary.sort((a, b) => new Date(a.month) - new Date(b.month));
 
     res.status(200).json(summary);
