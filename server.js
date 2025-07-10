@@ -32,6 +32,11 @@ import dashboardRoutes from "./routes/dashboardRoute.js";
 app.use("/api/dashboard", dashboardRoutes);
 
 
+// server.js
+import summaryRoutes from "./routes/summaryRoute.js";
+app.use("/api/summary", summaryRoutes); // ✅ Register under /api/summary
+
+
 const PORT = process.env.PORT || 5000;
 
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
