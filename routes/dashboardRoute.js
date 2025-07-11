@@ -1,35 +1,54 @@
 import express from "express";
 import Bill from "../models/Bill.js";
 import Stock from "../models/Stock.js";
+import AuditLog from "../models/AuditLog.js"; // ✅ include AuditLog
 
 const router = express.Router();
 
-// Backend: /api/dashboard/totalpurchase
 router.get("/totalpurchase", async (req, res) => {
   try {
+    // ✅ Initial stock purchase
     const stocks = await Stock.find();
-
-    // Total purchase: quantity * purchaseRate for each item
-    const totalPurchase = stocks.reduce(
+    const totalInitialPurchase = stocks.reduce(
       (sum, item) => sum + item.purchaseRate * item.quantity,
       0
     );
 
     const totalStockItems = stocks.length;
 
+    // ✅ Updated stock purchases (additional quantity updates)
+    const auditLogs = await AuditLog.find({
+      action: "Updated",
+      enteredQuantity: { $gt: 0 },
+    });
+
+    const totalUpdatedPurchase = auditLogs.reduce(
+      (sum, log) => sum + log.enteredQuantity * log.purchaseRate,
+      0
+    );
+
+    // ✅ Total Purchase = Initial + Updated
+    const totalPurchase = totalInitialPurchase + totalUpdatedPurchase;
+
+    // ✅ Sales Summary
     const bills = await Bill.find();
     const totalBills = bills.length;
-
     const totalSales = bills.reduce((sum, b) => sum + b.grandTotal, 0);
-    const totalDiscountAmount = bills.reduce((sum, b) => sum + (b.discount || 0), 0); // ✅ discount total
+    const totalDiscountAmount = bills.reduce(
+      (sum, b) => sum + (b.discount || 0),
+      0
+    );
+
     const totalProfit = totalSales - totalPurchase;
 
     res.json({
+      totalInitialPurchase,
+      totalUpdatedPurchase,
       totalPurchase,
       totalStockItems,
       totalBills,
       totalSales,
-      totalDiscountAmount,  // ✅ return discount total
+      totalDiscountAmount,
       totalProfit,
     });
   } catch (error) {
@@ -39,6 +58,7 @@ router.get("/totalpurchase", async (req, res) => {
 });
 
 export default router;
+
 
 
 // import express from "express";
