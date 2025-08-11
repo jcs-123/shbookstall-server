@@ -205,7 +205,37 @@ router.delete("/logs/:id", async (req, res) => {
 });
 
 
+router.get("/monthly-closing-stock", async (req, res) => {
+  try {
+    const { from, to } = req.query;
 
+    if (!from || !to) {
+      return res.status(400).json({ error: "From and To dates are required" });
+    }
+
+    // Find stocks updated within date range (or you can remove filter for all stocks)
+    const stocks = await Stock.find({
+      updatedAt: {
+        $gte: new Date(from),
+        $lte: new Date(to),
+      },
+    });
+
+    // Map data you want to send back
+    const closingStockData = stocks.map((stock) => ({
+      _id: stock._id,
+      itemName: stock.itemName,
+      code: stock.code,
+      quantity: stock.quantity,
+      purchaseRate: stock.purchaseRate,
+    }));
+
+    res.json(closingStockData);
+  } catch (err) {
+    console.error("Monthly Closing Stock Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 export default router;
