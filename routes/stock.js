@@ -94,7 +94,7 @@ router.put("/:id", async (req, res) => {
       editedBy: req.body.editedBy,
       timestamp: new Date(),
     });
-    
+
 
     res.json({ message: "Stock updated successfully", stock: updatedStock });
   } catch (err) {
@@ -228,7 +228,9 @@ router.get("/monthly-closing-stock", async (req, res) => {
       code: stock.code,
       quantity: stock.quantity,
       purchaseRate: stock.purchaseRate,
+      totalValue: (stock.purchaseRate * stock.quantity).toFixed(2), // calculate here
     }));
+
 
     res.json(closingStockData);
   } catch (err) {
