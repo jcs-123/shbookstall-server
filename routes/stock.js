@@ -206,6 +206,35 @@ router.delete("/logs/:id", async (req, res) => {
 
 
 
+router.get("/monthly-closing-stock", async (req, res) => {
+  try {
+    const { from, to } = req.query;
 
+    let query = {};
+
+    if (from && to) {
+      query.updatedAt = {
+        $gte: new Date(from),
+        $lte: new Date(to),
+      };
+    }
+    // If no dates provided, query will be empty => fetch all stocks
+
+    const stocks = await Stock.find(query);
+
+    const closingStockData = stocks.map((stock) => ({
+      _id: stock._id,
+      itemName: stock.itemName,
+      code: stock.code,
+      quantity: stock.quantity,
+      purchaseRate: stock.purchaseRate,
+    }));
+
+    res.json(closingStockData);
+  } catch (err) {
+    console.error("Monthly Closing Stock Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;
