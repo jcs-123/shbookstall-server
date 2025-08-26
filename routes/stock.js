@@ -43,12 +43,16 @@ router.post("/", async (req, res) => {
     await newStock.save();
 
     // ✅ Log the addition
+    // ✅ Add Stock — Audit log
     await AuditLog.create({
       action: "Added",
       itemName,
       code,
       editedBy,
       enteredQuantity: quantity,
+      purchaseRate,
+      amount: purchaseRate * quantity,   // 👈 New
+      timestamp: new Date(),
     });
 
     res.status(201).json({ message: "Stock added successfully", stock: newStock });
@@ -83,6 +87,7 @@ router.put("/:id", async (req, res) => {
     const enteredQuantity = req.body.quantity - oldStock.quantity;
     const updatedQuantity = req.body.quantity;
 
+    // ✅ Update Stock — Audit log
     await AuditLog.create({
       action: "Updated",
       itemName: oldStock.itemName,
@@ -90,7 +95,8 @@ router.put("/:id", async (req, res) => {
       oldQuantity: oldStock.quantity,
       enteredQuantity: enteredQuantity,
       updatedQuantity: updatedQuantity,
-      purchaseRate: oldStock.purchaseRate, // 👈 Store rate for calculation
+      purchaseRate: oldStock.purchaseRate,
+      amount: updatedQuantity * oldStock.purchaseRate,  // 👈 New
       editedBy: req.body.editedBy,
       timestamp: new Date(),
     });
@@ -185,9 +191,20 @@ router.get("/get-by-code/:code", async (req, res) => {
 });
 
 // ✅ Get Audit Logs
+// ✅ Get Audit Logs with date filter
 router.get("/logs", async (req, res) => {
   try {
-    const logs = await AuditLog.find().sort({ timestamp: -1 });
+    const { from, to } = req.query;
+    const query = {};
+
+    if (from && to) {
+      query.timestamp = {
+        $gte: new Date(from),
+        $lte: new Date(to),
+      };
+    }
+
+    const logs = await AuditLog.find(query).sort({ timestamp: -1 });
     res.status(200).json(logs);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch audit logs" });
