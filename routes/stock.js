@@ -192,6 +192,7 @@ router.get("/get-by-code/:code", async (req, res) => {
 
 // ✅ Get Audit Logs
 // ✅ Get Audit Logs with date filter
+// ✅ Get Audit Logs with date filter
 router.get("/logs", async (req, res) => {
   try {
     const { from, to } = req.query;
@@ -205,11 +206,33 @@ router.get("/logs", async (req, res) => {
     }
 
     const logs = await AuditLog.find(query).sort({ timestamp: -1 });
-    res.status(200).json(logs);
+
+    // ✅ Ensure amount is always calculated
+    const enrichedLogs = logs.map(log => {
+      let amount = log.amount;
+
+      if (!amount) {
+        if (log.enteredQuantity && log.purchaseRate) {
+          amount = log.enteredQuantity * log.purchaseRate;
+        } else if (log.updatedQuantity && log.purchaseRate) {
+          amount = log.updatedQuantity * log.purchaseRate;
+        } else {
+          amount = 0;
+        }
+      }
+
+      return {
+        ...log._doc,
+        amount,
+      };
+    });
+
+    res.status(200).json(enrichedLogs);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch audit logs" });
   }
 });
+
 
 // ✅ Delete Audit Log by ID
 router.delete("/logs/:id", async (req, res) => {
