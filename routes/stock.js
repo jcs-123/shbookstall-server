@@ -221,11 +221,19 @@ router.get("/logs", async (req, res) => {
         }
       }
 
+      // ✅ Added Quantity Amount
+      const addedQuantityAmount =
+        log.enteredQuantity && log.purchaseRate
+          ? log.enteredQuantity * log.purchaseRate
+          : 0;
+
       return {
         ...log._doc,
         amount,
+        addedQuantityAmount, // ✅ include
       };
     });
+
 
     res.status(200).json(enrichedLogs);
   } catch (err) {
