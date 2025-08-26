@@ -212,7 +212,7 @@ router.get("/monthly-closing-stock", async (req, res) => {
 
     let query = {};
     if (from && to) {
-      query.updatedAt = {
+      query.createdAt = {
         $gte: new Date(from),
         $lte: new Date(to),
       };
@@ -233,7 +233,6 @@ router.get("/monthly-closing-stock", async (req, res) => {
       };
     });
 
-    // 👇 Calculate sum of all totalValue
     const totalClosingStockAmount = closingStockData.reduce(
       (acc, item) => acc + parseFloat(item.totalValue),
       0
@@ -248,6 +247,7 @@ router.get("/monthly-closing-stock", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 export default router;
