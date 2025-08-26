@@ -209,27 +209,23 @@ router.get("/logs", async (req, res) => {
 
     // ✅ Ensure amount is always calculated
     const enrichedLogs = logs.map(log => {
-      let addedAmount = 0;
-      let updatedAmount = 0;
+      let amount = log.amount;
 
-      // If it's a newly added stock
-      if (log.enteredQuantity && log.purchaseRate) {
-        addedAmount = log.enteredQuantity * log.purchaseRate;
-      }
-
-      // If it's an updated stock
-      if (log.updatedQuantity && log.purchaseRate) {
-        updatedAmount = log.updatedQuantity * log.purchaseRate;
+      if (!amount) {
+        if (log.enteredQuantity && log.purchaseRate) {
+          amount = log.enteredQuantity * log.purchaseRate;
+        } else if (log.updatedQuantity && log.purchaseRate) {
+          amount = log.updatedQuantity * log.purchaseRate;
+        } else {
+          amount = 0;
+        }
       }
 
       return {
-        ...log._doc, // keep original log fields
-        addedAmount,
-        updatedAmount,
-        totalAmount: addedAmount + updatedAmount, // optional: combined
+        ...log._doc,
+        amount,
       };
     });
-
 
     res.status(200).json(enrichedLogs);
   } catch (err) {
