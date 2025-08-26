@@ -211,32 +211,43 @@ router.get("/monthly-closing-stock", async (req, res) => {
     const { from, to } = req.query;
 
     let query = {};
-
     if (from && to) {
       query.updatedAt = {
         $gte: new Date(from),
         $lte: new Date(to),
       };
     }
-    // If no dates provided, query will be empty => fetch all stocks
 
     const stocks = await Stock.find(query);
 
-    const closingStockData = stocks.map((stock) => ({
-      _id: stock._id,
-      itemName: stock.itemName,
-      code: stock.code,
-      quantity: stock.quantity,
-      purchaseRate: stock.purchaseRate,
-      totalValue: (stock.purchaseRate * stock.quantity).toFixed(2), // calculate here
-    }));
+    const closingStockData = stocks.map((stock) => {
+      const totalValue = stock.purchaseRate * stock.quantity;
+      return {
+        _id: stock._id,
+        createdAt: stock.createdAt,
+        itemName: stock.itemName,
+        code: stock.code,
+        quantity: stock.quantity,
+        purchaseRate: stock.purchaseRate,
+        totalValue: totalValue.toFixed(2),
+      };
+    });
 
+    // 👇 Calculate sum of all totalValue
+    const totalClosingStockAmount = closingStockData.reduce(
+      (acc, item) => acc + parseFloat(item.totalValue),
+      0
+    );
 
-    res.json(closingStockData);
+    res.json({
+      closingStockData,
+      totalClosingStockAmount: totalClosingStockAmount.toFixed(2),
+    });
   } catch (err) {
     console.error("Monthly Closing Stock Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 export default router;
